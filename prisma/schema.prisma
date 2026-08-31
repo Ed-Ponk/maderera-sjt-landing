@@ -1,0 +1,169 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum TipoProducto {
+  MADERA_TABLON
+  TABLERO_PROCESADO
+  ACABADO
+}
+
+enum EstadoDisponibilidad {
+  DISPONIBLE
+  A_PEDIDO
+  NO_DISPONIBLE
+}
+
+enum Rol {
+  ADMIN
+  VENDEDOR
+}
+
+model Categoria {
+  id          String     @id @default(cuid())
+  nombre      String
+  slug        String     @unique
+  descripcion String?
+  orden       Int        @default(0)
+  productos   Producto[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("categorias")
+}
+
+model Sede {
+  id             String         @id @default(cuid())
+  nombre         String         // "Talara", "Paita", "Chiclayo"
+  slug           String         @unique
+  direccion      String
+  telefono       String
+  esProximamente Boolean        @default(false) // true únicamente para Chiclayo
+  activa         Boolean        @default(true)
+  orden          Int            @default(0) // Sede por defecto del sitio = primera activa por orden asc
+  imagenUrl      String?        // Cover sincronizada con la primera de imagenes
+  inventario     ProductoSede[]
+  imagenes       SedeImagen[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("sedes")
+}
+
+model Producto {
+  id             String               @id @default(cuid())
+  nombre         String               // Ej: "Tablón Cachimbo", "Triplay Marino"
+  slug           String               @unique
+  descripcion    String
+  imagenUrl      String
+  tipoProducto   TipoProducto         @default(MADERA_TABLON)
+  destacado      Boolean              @default(false)
+  
+  // Campos técnicos opcionales
+  tipoMadera     String?              // Ej: "Cachimbo" - Normalizado en Casing. Omitido si TABLERO_PROCESADO
+  densidad       String?              // Ej: "0.68 g/cm³"
+  humedad        String?              // Ej: "12% - 15%"
+  
+  // Medidas estructuradas en milímetros para filtrado numérico exacto
+  espesorMm      Float?               // Espesor en mm (ej: 50.8)
+  anchoMm        Float?               // Ancho en mm (ej: 203.2)
+  largoMm        Float?               // Largo en mm (ej: 3048.0)
+  medidasDisplay String?              // Formato legible (ej: 2" x 8" x 10' / 1.22m x 2.44m x 18mm)
+
+  categoriaId    String
+  categoria      Categoria            @relation(fields: [categoriaId], references: [id])
+  
+  sedes          ProductoSede[]
+  imagenes       ProductoImagen[]
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@map("productos")
+}
+
+model ProductoSede {
+  id         String               @id @default(cuid())
+  productoId String
+  sedeId     String
+  estado     EstadoDisponibilidad @default(NO_DISPONIBLE)
+
+  producto   Producto             @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  sede       Sede                 @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+
+  @@unique([productoId, sedeId])
+  @@map("producto_sedes")
+}
+
+model ProductoImagen {
+  id         String   @id @default(cuid())
+  productoId String
+  url        String
+  orden      Int      @default(0)
+
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@map("producto_imagenes")
+}
+
+model SedeImagen {
+  id     String @id @default(cuid())
+  sedeId String
+  url    String
+  orden  Int    @default(0)
+
+  sede   Sede   @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+
+  @@map("sede_imagenes")
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  nombre       String
+  passwordHash String
+  rol          Rol      @default(VENDEDOR)
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("usuarios")
+}
+
+model Contacto {
+  id        String   @id @default(cuid())
+  nombre    String
+  whatsapp  String   @unique // Formato "+51 900 000 001"
+  cargo     String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contactos")
+}
+
+model RedSocial {
+  id        String   @id @default(cuid())
+  nombre    String   // "Facebook", "Instagram", "YouTube"
+  url       String
+  icono     String   // Clave de icono lucide: facebook, instagram, youtube
+  activo    Boolean  @default(true)
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("redes_sociales")
+}
+
+model SiteContent {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_content")
+}

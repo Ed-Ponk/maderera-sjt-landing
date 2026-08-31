@@ -1,0 +1,62 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { deleteSede } from "./actions";
+import { ConfirmDialog } from "@/admin/ui/ConfirmDialog";
+
+export function DeleteSedeButton({
+  sedeId,
+  nombre,
+}: {
+  sedeId: string;
+  nombre: string;
+}) {
+  const router = useRouter();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleConfirm() {
+    setBusy(true);
+    setError(null);
+    const res = await deleteSede(sedeId);
+    if (res.ok) {
+      setConfirmOpen(false);
+      router.refresh();
+    } else {
+      setBusy(false);
+      setError(res.message ?? "No se pudo eliminar");
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setConfirmOpen(true)}
+        className="text-error hover:opacity-80 cursor-pointer"
+        aria-label={`Eliminar ${nombre}`}
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Eliminar sede"
+        mensaje={`¿Eliminar la sede "${nombre}"?`}
+        advertencia="Se desvinculará de todos sus productos."
+        confirmarLabel="Eliminar"
+        busy={busy}
+        error={error}
+        onConfirm={handleConfirm}
+        onCancel={() => {
+          if (!busy) {
+            setConfirmOpen(false);
+            setError(null);
+          }
+        }}
+      />
+    </>
+  );
+}

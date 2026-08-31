@@ -1,0 +1,15 @@
+# Crontab — Maderera San Judas Tadeo: backup diario de la base SQLite
+#
+# Instalar como usuario que tenga lectura sobre la DB (ej. el usuario del VPS):
+#   crontab -e
+# y pegar la línea de abajo ajustando las rutas a las reales del VPS.
+#
+# Las 3:00 AM de cada día. El script:
+#   - hace backup consistente con `sqlite3 .backup` (seguro con escrituras en curso)
+#   - guarda en backups/ con nombre prod-YYYYMMDD-HHMMSS.db
+#   - borra backups con más de 14 días de antigüedad
+#   - sale con exit != 0 si sqlite3 falta o DB_PATH no existe
+#
+# Reemplazar /var/www/madererasjt por la ruta real del repo en el VPS.
+
+0 3 * * * DB_PATH=/var/lib/maderera-sjt/prod.db /var/www/madererasjt/scripts/backup-db.sh >> /var/log/maderera-sjt-backup.log 2>&1
